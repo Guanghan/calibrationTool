@@ -82,7 +82,6 @@ char folder[128];
 char text[128];
 char outputimage[128];
 //CvMat objectPoints, imagePoints, pointCounts;
-CvMat* objectPointsAll;
 FILE *points_2D3D;
 float x_scale;
 int flag_board_not_enough= 0;
@@ -275,27 +274,6 @@ void OpenDir()
 }  
 */
 
-float calCosSinTheta(int mode)
-{
-	float delta1, delta2, temp;
-    float cosTheta[3], sinTheta[3];
-    for(int i= 0; i< 2; i++)
-	{
-		
-		delta1= abs(pointarray[i+1][0]-pointarray[i][0]);
-		delta2= abs(pointarray[i+1][1]-pointarray[i][1]);
-		temp= sqrt(delta1*delta1+ delta2*delta2);
-		cosTheta[i]= delta1/temp;
-		sinTheta[i]= delta2/temp;
-	}
-	if (mode== 0)  
-		return (cosTheta[0]+cosTheta[1]+cosTheta[2])/3;
-	else 
-		return (sinTheta[0]+sinTheta[1]+sinTheta[2])/3;
-}
-
-
-
 void drawStickGroundDot()
 {
 	    double t[3];// since the 3D point for the bottom of the stick is [0 0 0], so T is what we need in the camera coordinate, according to M'=RM+T , which M is the 3D point and M' is the camera point
@@ -324,28 +302,14 @@ void drawStickGroundDot()
         CV_MAT_ELEM( *stick3D, float , 3, 0)=0;
         CV_MAT_ELEM( *stick3D, float , 3, 1)=0;
         CV_MAT_ELEM( *stick3D, float , 3, 2)=0;
-
-		//calculate sinTheta and cosTheta
-		sinTheta= calCosSinTheta(1);  //mode 1 is sin mode
-		cosTheta= calCosSinTheta(0);  //mode 0 is cos mode
-		sinThetaS[img_num]= sinTheta;
-		cosThetaS[img_num]= cosTheta; 
   
          for (int j=0; j<4; j++)
         {
                CV_MAT_ELEM( *imagePoints, float , j, 0)= int((pointarray[j][0]- offset_x)*x_scale);
                CV_MAT_ELEM( *imagePoints, float , j, 1)= int ((pointarray[j][1]- offset_y)*x_scale);
-               //CV_MAT_ELEM( *objectPoints, float , j, 0)= 0;
-               //CV_MAT_ELEM( *objectPoints, float , j, 1)= 2*(j+1)*cosTheta;
-               //CV_MAT_ELEM( *objectPoints, float , j, 2)= 2*(j+1)*sinTheta;
-               CV_MAT_ELEM( *objectPoints, float, j, 0)= 0;
-               CV_MAT_ELEM( *objectPoints, float, j, 1)= 0;
-               CV_MAT_ELEM( *objectPoints, float, j, 2)= 2*(j+1);
-
-			   
-			   CV_MAT_ELEM( *objectPointsAll, float , img_num, 3*j)= 0;
-			   CV_MAT_ELEM( *objectPointsAll, float , img_num, 3*j+1)= CV_MAT_ELEM( *objectPoints, float , j, 1);
-			   CV_MAT_ELEM( *objectPointsAll, float , img_num, 3*j+2)= CV_MAT_ELEM( *objectPoints, float , j, 2);
+               CV_MAT_ELEM( *objectPoints, float , j, 0)= 0;
+               CV_MAT_ELEM( *objectPoints, float , j, 1)= 0;
+               CV_MAT_ELEM( *objectPoints, float , j, 2)= 2*(j+1);
         }      
         
         cvFindExtrinsicCameraParams2(objectPoints, imagePoints, intrinsic, distortion, rvec, tvec, 1);
@@ -400,7 +364,6 @@ void Init_Pole()
 	
     printf("Fist Pic is: %s\n", PicName[0]);
 	printf("Num_image is: %d\n", Num_image);
-
 }
 void Init_Board()
 {
@@ -501,11 +464,11 @@ int DispImage2(int img_num)
 }
 int calibration()
 {
-	board_w = 8;//9;//9;//8;//5;//9; // Board width in squares
+	board_w = 9;//9;//8;//5;//9; // Board width in squares
 	board_h = 6;//4;//6; // Board height 
 	//board_w = 8; // Board width in squares
 	//board_h = 8; // Board height 
-	n_boards = 12; // Number of boards
+	n_boards = 10; // Number of boards
 	board_n = board_w * board_h;
 	board_sz = cvSize( board_w, board_h );
 	//CvCapture* capture = cvCreateCameraCapture( 0 );
@@ -1038,29 +1001,20 @@ else if( (x> Next[0][1])&& (x< Next[1][1]) &&(y> Next[0][0]) &&(y< Next[1][0]) )
 	buttonLight ( Next );
 	cvShowImage( "background", groundImg );
 	cvWaitKey(3);
-
+	
+	img_num++;
+	//DispImage(img_num);
     ///////////////////////////////////////////////////////////////
 	//read in every four pole positions when clicking next
 	if(flag_read_or_not)
 	{
-     /*
     fprintf( points_2D3D, "%d %d %d %d %d\n", int((pointarray[0][0]- offset_x)*x_scale), int((pointarray[0][1]- offset_y)*x_scale), 0, 0, 2 );
     fprintf( points_2D3D, "%d %d %d %d %d\n", int((pointarray[1][0]- offset_x)*x_scale), int((pointarray[1][1]- offset_y)*x_scale), 0, 0, 4 );
     fprintf( points_2D3D, "%d %d %d %d %d\n", int((pointarray[2][0]- offset_x)*x_scale), int((pointarray[2][1]- offset_y)*x_scale), 0, 0, 6 );
 	fprintf( points_2D3D, "%d %d %d %d %d\n", int((pointarray[3][0]- offset_x)*x_scale), int((pointarray[3][1]- offset_y)*x_scale), 0, 0, 8 );
-     */
-    
-	fprintf( points_2D3D, "%d %d %f %f %f\n" , int((pointarray[0][0]- offset_x)*x_scale), int((pointarray[0][1]- offset_y)*x_scale), 0, CV_MAT_ELEM( *objectPointsAll, float , img_num, 1), CV_MAT_ELEM( *objectPointsAll, float , img_num, 2) );
-    fprintf( points_2D3D, "%d %d %f %f %f\n" , int((pointarray[1][0]- offset_x)*x_scale), int((pointarray[1][1]- offset_y)*x_scale), 0, CV_MAT_ELEM( *objectPointsAll, float , img_num, 4), CV_MAT_ELEM( *objectPointsAll, float , img_num, 5) );
-    fprintf( points_2D3D, "%d %d %f %f %f\n" , int((pointarray[2][0]- offset_x)*x_scale), int((pointarray[2][1]- offset_y)*x_scale), 0, CV_MAT_ELEM( *objectPointsAll, float , img_num, 7), CV_MAT_ELEM( *objectPointsAll, float , img_num, 8) );
-    fprintf( points_2D3D, "%d %d %f %f %f\n" , int((pointarray[3][0]- offset_x)*x_scale), int((pointarray[3][1]- offset_y)*x_scale), 0, CV_MAT_ELEM( *objectPointsAll, float , img_num, 10), CV_MAT_ELEM( *objectPointsAll, float , img_num, 11) );
-    
-
 	}
 	flag_read_or_not= 0;
 	///////////////////////////////////////////////////////////////
-	img_num++;
-	//DispImage(img_num);
 	if(img_num >10)
 	{
 	DispImage2(img_num);
@@ -1269,11 +1223,6 @@ else if( (x> Exit[0][1])&& (x< Exit[1][1]) &&(y> Exit[0][0]) &&(y< Exit[1][0]) )
 			fin >> CV_MAT_ELEM( *objectPoints, float, j, 0);
 			fin >> CV_MAT_ELEM( *objectPoints, float, j, 1);
 			fin >> CV_MAT_ELEM( *objectPoints, float, j, 2);
-
-			//multiply by cosTheta and sinTheta                       
-			CV_MAT_ELEM( *objectPoints, float , j, 0) = 0;
-			CV_MAT_ELEM( *objectPoints, float , j, 1) = 2*(j+1)*cosThetaS[img_num];
-			CV_MAT_ELEM( *objectPoints, float , j, 2) = 2*(j+1)*sinThetaS[img_num];
 		}
 		
 		
@@ -1411,9 +1360,6 @@ int main( int argc, char** argv )
 	Init_Pole();
 	Init_Board();
 	
-	
-    objectPointsAll=cvCreateMat( 128, 12, CV_32FC1 );
-
 	//system("dir ..\\ /B /A:D >..\\Release\\folderList.txt");
     // Load camera's intrinsic parameters
 	/*CvMat * */intrinsic = (CvMat*)cvLoad( "Intrinsics.xml" );
@@ -1470,6 +1416,7 @@ int main( int argc, char** argv )
    //sprintf( folder, "%s%d%s", "..\\Cal\\poles\\", folder_num, "\\"); 
    sprintf( folder, "%s", "..\\Cal\\poles\\"); 
    
+
 
    
    //sprintf( inputName_calibration, "%s%d%s", "..\\Cal\\boards\\", img_num_calibration, ".JPG"); 
@@ -1534,8 +1481,15 @@ int main( int argc, char** argv )
         }
    
    //output resized image with dots on it
-   
 
-   //release space
-   cvReleaseMat(&objectPointsAll);
 }
+
+
+
+/*
+char text[128];
+ 
+       sprintf(text, "Frame %5d", pBKSegmentPara->iFrameNum);
+       cvInitFont(&font1, CV_FONT_HERSHEY_SIMPLEX, 0.5, 0.5, 0, 1, CV_AA);
+       cvPutText(frameCopy, text, cvPoint(10, 460), &font1, cvScalar(255, 255, 255, 255));
+	   */
