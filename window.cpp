@@ -17,6 +17,8 @@
 #define NUM_MAX_FILES_PER_FOLDER	4000
 #define NAME_BUFFER_LEN				128	// in sizeof(char)
 
+#pragma comment( linker, "/subsystem:\"windows\" /entry:\"mainCRTStartup\"")
+
 //system(">dir /B /A:D >folderList.txt");
 //*******************************structure*****************************************************//
 /*
@@ -464,7 +466,7 @@ int DispImage2(int img_num)
 }
 int calibration()
 {
-	board_w = 9;//9;//8;//5;//9; // Board width in squares
+	board_w = 8;//9;//8;//5;//9; // Board width in squares
 	board_h = 6;//4;//6; // Board height 
 	//board_w = 8; // Board width in squares
 	//board_h = 8; // Board height 
