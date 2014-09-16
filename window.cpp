@@ -335,9 +335,13 @@ void drawStickGroundDot()
         {
                CV_MAT_ELEM( *imagePoints, float , j, 0)= int((pointarray[j][0]- offset_x)*x_scale);
                CV_MAT_ELEM( *imagePoints, float , j, 1)= int ((pointarray[j][1]- offset_y)*x_scale);
-               CV_MAT_ELEM( *objectPoints, float , j, 0)= 0;
-               CV_MAT_ELEM( *objectPoints, float , j, 1)= 2*(j+1)*cosTheta;
-               CV_MAT_ELEM( *objectPoints, float , j, 2)= 2*(j+1)*sinTheta;
+               //CV_MAT_ELEM( *objectPoints, float , j, 0)= 0;
+               //CV_MAT_ELEM( *objectPoints, float , j, 1)= 2*(j+1)*cosTheta;
+               //CV_MAT_ELEM( *objectPoints, float , j, 2)= 2*(j+1)*sinTheta;
+               CV_MAT_ELEM( *objectPoints, float, j, 0)= 0;
+               CV_MAT_ELEM( *objectPoints, float, j, 1)= 0;
+               CV_MAT_ELEM( *objectPoints, float, j, 2)= 2*(j+1);
+
 			   
 			   CV_MAT_ELEM( *objectPointsAll, float , img_num, 3*j)= 0;
 			   CV_MAT_ELEM( *objectPointsAll, float , img_num, 3*j+1)= CV_MAT_ELEM( *objectPoints, float , j, 1);
