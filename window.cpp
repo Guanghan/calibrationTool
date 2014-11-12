@@ -1,6 +1,6 @@
 //Header Declaration
-#include "cv.h"
-#include "highgui.h"
+#include "opencv/cv.h"
+#include "opencv/highgui.h"
 
 #include<iostream>
 #include<fstream>
@@ -19,25 +19,6 @@
 
 #pragma comment( linker, "/subsystem:\"windows\" /entry:\"mainCRTStartup\"")
 
-//system(">dir /B /A:D >folderList.txt");
-//*******************************structure*****************************************************//
-/*
-typedef struct File_List_Struct
-{
-	int		numFile;
-	int		numDir;
-	//int		currFramNum;
-
-	char	PicName[128];
-	//char	CurrPicName[128];
-	char	DirName[128];
-
-	char**	strInputPicNameArr;
-
-}File_List_Struct; 
-
-File_List_Struct*	gFileList;  //global structure 
-*/
 //*******************************The Slide caculated for the pole**********************************************//
 float sinTheta, cosTheta;
 float sinThetaS[128], cosThetaS[128];
@@ -144,138 +125,9 @@ int flag_read_or_not= 0;
 	char **PicName2;
 	char cmd_arg2[128];
 	char PictureList_dir2[128];
+
+
 /***********************************************************************************/
-
-
-
-
-/*
-void ErrorHandler(LPTSTR lpszFunction) 
-{ 
-	// Retrieve the system error message for the last-error code
-
-	LPVOID lpMsgBuf;
-	LPVOID lpDisplayBuf;
-	DWORD dw = GetLastError(); 
-
-	FormatMessage(
-		FORMAT_MESSAGE_ALLOCATE_BUFFER | 
-		FORMAT_MESSAGE_FROM_SYSTEM |
-		FORMAT_MESSAGE_IGNORE_INSERTS,
-		NULL,
-		dw,
-		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-		(LPTSTR) &lpMsgBuf,
-		0, NULL );
-
-	// Display the error message and exit the process
-
-	lpDisplayBuf = (LPVOID)LocalAlloc(LMEM_ZEROINIT, 
-		(lstrlen((LPCTSTR)lpMsgBuf)+lstrlen((LPCTSTR)lpszFunction)+40)*sizeof(TCHAR)); 
-	StringCchPrintf((LPTSTR)lpDisplayBuf, 
-		LocalSize(lpDisplayBuf) / sizeof(TCHAR),
-		TEXT("%s failed with error %d: %s"), 
-		lpszFunction, dw, lpMsgBuf); 
-	MessageBox(NULL, (LPCTSTR)lpDisplayBuf, TEXT("Error"), MB_OK); 
-
-	LocalFree(lpMsgBuf);
-	LocalFree(lpDisplayBuf);
-}
-*/
-/*
-void OpenDir()
-{
-    char** Names;
-	char	BoardDir[256];
-	WIN32_FIND_DATA ffd;
-	LARGE_INTEGER filesize;
-	TCHAR szDir[MAX_PATH];
-	size_t length_of_arg;
-	HANDLE hFind = INVALID_HANDLE_VALUE;
-	DWORD dwError=0;
-	int i, iii, idxVideoName;
-		
-	// convert wchar_t to char
-	size_t				convertedChars = 0;
-	size_t				origsize;;
-
-	// initialize file list buffer.
-	gFileList			= (File_List_Struct*)malloc(sizeof(File_List_Struct));
-	gFileList->numDir	= 0;
-	gFileList->numFile	= 0;
-	gFileList->strInputPicNameArr = (char**)malloc(NUM_MAX_FILES_PER_FOLDER * sizeof(char*));
-
-	Names		= gFileList->strInputPicNameArr;
-
-	for (i=0; i<NUM_MAX_FILES_PER_FOLDER; i++)
-	{
-		*(Names + i)	= (char*)malloc(NAME_BUFFER_LEN * sizeof(char));
-	}
-
-	//strcpy( BoardDir, "../Cal/boards/");//ning
-	//strcpy( gFileList->DirName, BoardDir );
-
-	//iii =	MultiByteToWideChar(CP_ACP, 0, BoardDir, -1, szDir, 0); 
-	//iii =	MultiByteToWideChar(CP_ACP, 0, BoardDir, -1, szDir, iii); 
-
-
-	StringCchCat(szDir, MAX_PATH, TEXT("..\Cal\boards\\*"));
-
-	
-	
-	//StringCchCat(szDir, MAX_PATH, TEXT("\\*"));
-
-	// Find the first file in the directory.
-	hFind = FindFirstFile(szDir, &ffd);
-
-	if (INVALID_HANDLE_VALUE == hFind) 
-	{
-		ErrorHandler(TEXT("FindFirstFile"));
-		//return dwError;
-	} 
-
-	// List all the files in the directory with some info about them.
-	do
-	{
-		if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-		{
-			// . <DIR> or .. <DIR>
-			gFileList->numDir ++;
-			_tprintf(TEXT("  %s   <DIR>\n"), ffd.cFileName);
-		}
-		else
-		{
-			// list of each file.
-			filesize.LowPart	= ffd.nFileSizeLow;
-			filesize.HighPart	= ffd.nFileSizeHigh;
-
-			idxVideoName		= gFileList->numFile;
-			gFileList->numFile ++;
-
-			origsize	= wcslen(ffd.cFileName) + 1;
-
-			// save current file name in string array.
-			wcstombs_s( &convertedChars,
-						*(gFileList->strInputPicNameArr + idxVideoName), 
-						origsize, ffd.cFileName, _TRUNCATE );
-			// save current file name.
-			wcstombs_s( &convertedChars, gFileList->PicName, origsize, ffd.cFileName, _TRUNCATE );
-		}
-	}
-	while (FindNextFile(hFind, &ffd) != 0);
-
-	dwError = GetLastError();
-	if (dwError != ERROR_NO_MORE_FILES) 
-	{
-		ErrorHandler(TEXT("FindFirstFile"));
-	}
-
-	FindClose(hFind);
-	//return dwError;
-
-}  
-*/
-
 void drawStickGroundDot()
 {
 	    double t[3];// since the 3D point for the bottom of the stick is [0 0 0], so T is what we need in the camera coordinate, according to M'=RM+T , which M is the 3D point and M' is the camera point
@@ -374,7 +226,6 @@ void Init_Board()
 	for(n=0;n<256; n++)
 	PicName2[n] = (char *)malloc(256 * sizeof(char));
 
-	//sprintf( cmd_arg2, "dir ..\\Cal\\boards\\ /B /O:D >..\\Cal\\boards\\BoardsList.txt");   //modify command argument
 	sprintf( cmd_arg2, "dir ..\\Cal\\boards\\ /B /O:N >..\\Cal\\BoardsList.txt");   //modify command argument
     system(cmd_arg2);                                                      //generate Picture list in that folder
 
@@ -391,11 +242,7 @@ void Init_Board()
 	  //printf("flag_image is: %d\n",flag_image);
 	}
     fclose(fp_PictureList2 );
-	 Num_image2--;  //exclude the txt file
-	//fscanf( fp_PictureList, "%s", &PicName[1]);  
-	
-    //printf("Fist Pic is: %s\n", PicName2[0]);
-	//printf("Num_image is: %d\n", Num_image2);
+	Num_image2--;  //exclude the txt file
 }
 int DispImage2(int img_num)
 {
@@ -410,21 +257,6 @@ int DispImage2(int img_num)
    
    image= cvCreateImage( cvSize(image_org->width, image_org->height), IPL_DEPTH_8U, 3);
    cvCopy(image_org, image);
-
-   /*
-     //Trying to have a curve to compensate inaccuray near the camera 
-   // Build the undistort map that we will use for all subsequent frames
-	IplImage* mapx = cvCreateImage( cvGetSize(image), IPL_DEPTH_32F, 1 );
-	IplImage* mapy = cvCreateImage( cvGetSize( image), IPL_DEPTH_32F, 1 );
-	cvInitUndistortMap( intrinsic, distortion, mapx, mapy );
-	IplImage *t = cvCloneImage(image );	
-	cvRemap( t, image, mapx, mapy ); // undistort image
-	cvReleaseImage( &t );
-	cvNamedWindow("undistorted image");
-	cvShowImage("undistorted image", image);
-	cvWaitKey(0);
-	  //new in v0.9.2
-	  */
 
    //Resize image based on the window/backgroundimage
    width_ground= groundImg->width;
@@ -466,15 +298,11 @@ int DispImage2(int img_num)
 }
 int calibration()
 {
-	board_w = 8;//9;//8;//5;//9; // Board width in squares
-	board_h = 6;//4;//6; // Board height 
-	//board_w = 8; // Board width in squares
-	//board_h = 8; // Board height 
+	board_w = 9;   // Board width in squares
+	board_h = 6;   // Board height 
 	n_boards = 10; // Number of boards
 	board_n = board_w * board_h;
 	board_sz = cvSize( board_w, board_h );
-	//CvCapture* capture = cvCreateCameraCapture( 0 );
-	//assert( capture );
 
 	//cvNamedWindow( "Calibration" );
 	// Allocate Sotrage
@@ -495,7 +323,7 @@ int calibration()
 
         if( (image_calibration = cvLoadImage( inputName_calibration, 1)) == 0 )
 		{
-			printf("Board images cannot found in dirctory: /Calibration Tool v1.0/Cal/boards/ \n");
+			printf("Board images cannot found in dirctory: %Root%/Cal/boards/ \n");
 			
 		    return -1;
 		}
@@ -550,7 +378,6 @@ int calibration()
 		//} 
 
 		// Handle pause/unpause and ESC
-		
 		int c = cvWaitKey( 15 );
 		if( c == 'p' ){
 			c = 0;
@@ -561,8 +388,7 @@ int calibration()
 		if( c == 27 )
 			return 0;
 		
-		img_num_calibration++;
-		//sprintf( inputName_calibration, "%s%d%s", "..\\Cal\\boards\\", img_num_calibration, ".JPG"); 
+	   img_num_calibration++;
        sprintf( inputName_calibration, "%s%s", "..\\Cal\\boards\\", PicName2[img_num_calibration-1]);
 	   printf("name is: %s\n", PicName2[img_num_calibration-1]);
 
@@ -607,7 +433,6 @@ int calibration()
 
 	// Calibrate the camera
 	cvCalibrateCamera2( object_points2, image_points2, point_counts2, cvGetSize( image_calibration ), 
-	//	intrinsic_matrix, distortion_coeffs, NULL, NULL, CV_CALIB_FIX_ASPECT_RATIO );
 	intrinsic_matrix, distortion_coeffs, rotation_vectors, translation_vectors, CV_CALIB_FIX_ASPECT_RATIO );
 	
 	// Save the intrinsics and distortions
@@ -620,19 +445,9 @@ int calibration()
     cvWaitKey( 200 );
 
 	cvReleaseImage(&gray_image);
-	cvReleaseImage(&image_calibration);
+	//cvReleaseImage(&image_calibration);  //Comment this for OpenCV2.4.9 cos  cvResize funcion is different from OpenCV2.1.0
 	cvReleaseImage(&image_calibration_resized);
 
-		// Handle pause/unpause and esc
-		/*
-		int c = cvWaitKey( 15 );
-		if( c == 'p' ){
-			c = 0;
-			while( c != 'p' && c != 27 ){
-				c = cvWaitKey( 250 );
-			}
-		}
-		*/
     flag_NI= 1;
 
 	return 0;
