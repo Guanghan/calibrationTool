@@ -13,6 +13,9 @@
 #include <strsafe.h>
 
 #include <stdlib.h>
+//defines 
+#define NUM_MAX_FILES_PER_FOLDER	4000
+#define NAME_BUFFER_LEN				128	// in sizeof(char)
 
 #pragma comment( linker, "/subsystem:\"windows\" /entry:\"mainCRTStartup\"")
 
@@ -55,11 +58,13 @@ CvScalar CvColorWhite = CV_RGB(255, 255, 255);
 
 int dotx, doty;
 int changePic = 0;
+//CvMat *intrinsic, *distortion ;
 int mouseParam = 5;
 float scale;
 char folder[128];
 char text[128];
 char outputimage[128];
+//CvMat objectPoints, imagePoints, pointCounts;
 FILE *points_2D3D;
 float x_scale;
 int flag_board_not_enough = 0;
@@ -138,18 +143,19 @@ void drawStickGroundDot()
 	CvMat* rvec = cvCreateMat(3, 1, CV_32FC1);
 	CvMat* tvec = cvCreateMat(3, 1, CV_32FC1);
 
+
 	CV_MAT_ELEM(*stick3D, float, 0, 0) = 0;
 	CV_MAT_ELEM(*stick3D, float, 0, 1) = 0;
 	CV_MAT_ELEM(*stick3D, float, 0, 2) = 0;
 	CV_MAT_ELEM(*stick3D, float, 1, 0) = 0;
 	CV_MAT_ELEM(*stick3D, float, 1, 1) = 0;
-	CV_MAT_ELEM(*stick3D, float, 1, 2) = 2;
+	CV_MAT_ELEM(*stick3D, float, 1, 2) = 0;
 	CV_MAT_ELEM(*stick3D, float, 2, 0) = 0;
 	CV_MAT_ELEM(*stick3D, float, 2, 1) = 0;
-	CV_MAT_ELEM(*stick3D, float, 2, 2) = 4;
+	CV_MAT_ELEM(*stick3D, float, 2, 2) = 0;
 	CV_MAT_ELEM(*stick3D, float, 3, 0) = 0;
 	CV_MAT_ELEM(*stick3D, float, 3, 1) = 0;
-	CV_MAT_ELEM(*stick3D, float, 3, 2) = 6;
+	CV_MAT_ELEM(*stick3D, float, 3, 2) = 0;
 
 	for (int j = 0; j<4; j++)
 	{
@@ -163,12 +169,13 @@ void drawStickGroundDot()
 	cvFindExtrinsicCameraParams2(objectPoints, imagePoints, intrinsic, distortion, rvec, tvec, 1);
 	cvProjectPoints2(stick3D, rvec, tvec, intrinsic, distortion, stick2D);
 
-	float u, v;  
+	float u, v;  // (u,v)= (    CV_MAT_ELEM( *stick2D, float , 0, 0),  CV_MAT_ELEM( *stick2D, float , 0, 1)    )
 	u = CV_MAT_ELEM(*stick2D, float, 0, 0);
 	v = CV_MAT_ELEM(*stick2D, float, 0, 1);
 	cvCircle(groundImg, cvPoint(int(u / x_scale + offset_x), int(v / x_scale + offset_y)), 3, CvColorBlue, 2, 8, 0);
 	cvCircle(groundImg, cvPoint(int(u / x_scale + offset_x), int(v / x_scale + offset_y)), 1, CvColorRed, 2, 8, 0);
 	cvCircle(groundImg, cvPoint(int(u / x_scale + offset_x), int(v / x_scale + offset_y)), 1, CvColorWhite, 1, 8, 0);
+	//cvCircle(  groundImg, cvPoint( int (u/x_scale + offset_x), int (v/x_scale + offset_y)), 2,  CvColorBlue, 2, 8, 0 );
 	cvShowImage("background", groundImg);
 
 	cvReleaseMat(&objectPoints);
@@ -293,7 +300,7 @@ int calibration()
 {
 	board_w = 9;   // Board width in squares
 	board_h = 6;   // Board height 
-	n_boards = 13; // Number of boards
+	n_boards = 10; // Number of boards
 	board_n = board_w * board_h;
 	board_sz = cvSize(board_w, board_h);
 
@@ -489,6 +496,10 @@ void drawlines(int pointarray[1024][2], int n1, int n2)
 
 void linkDots(int pointarray[1024][2], int n1, int n2)
 {
+	/* double temp= (pointarray[n1][0]-pointarray[n2][0])*(pointarray[n1][0]-pointarray[n2][0])
+	+  (pointarray[n1][1]-pointarray[n2][1])*(pointarray[n1][1]-pointarray[n2][1]);
+	double dist= sqrt( temp ); */
+
 	CvPoint a = { pointarray[n1][0], pointarray[n1][1] };
 	CvPoint b = { pointarray[n2][0], pointarray[n2][1] };
 	cvLine(groundImg, a, b, cvScalar(0, 0, 255, 0),
@@ -547,7 +558,13 @@ void writeNumber(int times, int pointarray[1024][2])
 	dotx = pointarray[times][0];
 	doty = pointarray[times][1];
 	sprintf(text, "%d", times + 1);
-
+	/*
+	cvInitFont( CvFont* font, int font_face,
+	double hscale, double vscale,
+	double shear CV_DEFAULT(0),
+	int thickness CV_DEFAULT(1),
+	int line_type CV_DEFAULT(8));
+	*/
 	CvFont font;
 	cvInitFont(&font, CV_FONT_HERSHEY_DUPLEX, 0.5f, 0.5f, 0, 1, CV_AA);
 	cvPutText(groundImg, text, cvPoint(dotx, doty), &font, cvScalar(228, 26, 3, 255));
@@ -665,6 +682,22 @@ void DispImage(int img_num)
 
 	foreImg = standard;
 
+	//caculate camera's extrinsic parameters based on foreImg
+	//we need to 
+
+	/*
+	// Build the undistort map that we will use for all subsequent frames
+	IplImage* mapx = cvCreateImage( cvGetSize(foreImg), IPL_DEPTH_32F, 1 );
+	IplImage* mapy = cvCreateImage( cvGetSize( foreImg ), IPL_DEPTH_32F, 1 );
+	cvInitUndistortMap( intrinsic, distortion, mapx, mapy );
+	IplImage *t = cvCloneImage(foreImg );
+	cvRemap( t, foreImg, mapx, mapy ); // undistort image
+	cvReleaseImage( &t );
+	cvNamedWindow("undistorted image");
+	cvShowImage("undistorted image", foreImg);
+	cvWaitKey(0);
+	*/
+
 	//Set image to the right position on top of the ground image
 	// write the fore ground image onto the ground image
 	step1 = groundImg->widthStep;
@@ -735,6 +768,34 @@ void onMouse(int event, int x, int y, int flags, void* param)
 				flag_else = 1;
 			}
 			else{};
+
+			/*  This is for newer versions. To be modified.
+			if ( times == 1)
+			{
+
+			cvCopy(groundImg_copy, groundImg);
+			buttonLight ( UndoMark );
+			//cvCircle(  groundImg, cvPoint(pointarray[times-1][0],pointarray[times-1][1]), 3, CvColorRed, 4, 8, 0 );
+			cvShowImage( "background", groundImg );
+			}
+			else if( times == 2)
+			{
+			cvCopy(groundImg_copy, groundImg);
+			buttonLight ( UndoMark );
+			//cvCircle(  groundImg, cvPoint(pointarray[times-2][0],pointarray[times-2][1]), 3, CvColorRed, 4, 8, 0 );
+			cvCircle(  groundImg, cvPoint( pointarray[times-1][0],pointarray[times-1][1]), 3, CvColorRed, 4, 8, 0 );
+			cvShowImage( "background", groundImg );
+			}
+			else if( times == 0)
+			{
+			cvCopy(groundImg_copy, groundImg);
+			buttonLight ( UndoMark );
+			cvCircle(  groundImg, cvPoint(pointarray[times][0],pointarray[times][1]), 3, CvColorRed, 4, 8, 0 );
+			cvCircle(  groundImg, cvPoint(pointarray[times+1][0],pointarray[times+1][1]), 3, CvColorRed, 4, 8, 0 );
+			cvShowImage( "background", groundImg );
+			}
+			*/
+
 		}
 
 		else if ((x> Next[0][1]) && (x< Next[1][1]) && (y> Next[0][0]) && (y< Next[1][0]))
@@ -746,7 +807,13 @@ void onMouse(int event, int x, int y, int flags, void* param)
 				flag_Cal = 0;
 				flag_EXIT = 1;
 				flag_else = 1;
-			
+				//doNext();
+				//printf("Next\n");
+				//sprintf(outputimage, "%s/%2d%s","..//Save",img_num,".jpg");
+				//printf("output path is: %s\n",outputimage);
+				//cvSaveImage(outputimage,groundImg,0);
+
+				//fprintf( points_2D3D, "%s\n", outputimage );
 				fprintf(points_2D3D, "\n");
 				buttonLight(Next);
 				cvShowImage("background", groundImg);
@@ -779,6 +846,7 @@ void onMouse(int event, int x, int y, int flags, void* param)
 					cvPutText(groundImg, text, d, &font, cvScalar(0, 255, 0, 255));  //in Green
 				}
 
+				//sprintf( inputName, "%s%d%s", folder, img_num+1, ".JPG"); 
 				sprintf(inputName, "%s\\%s", folder, PicName[img_num + 1]);
 				if ((image_org = cvLoadImage(inputName, 1)) == 0)
 				{
@@ -802,6 +870,7 @@ void onMouse(int event, int x, int y, int flags, void* param)
 				{
 					DispImage2(img_num);
 				}
+
 
 				cvSetMouseCallback("background", onMouse, &mouseParam);
 				cvWaitKey(0);
@@ -870,9 +939,52 @@ void onMouse(int event, int x, int y, int flags, void* param)
 			else
 			{
 			}
+
+
+
+			/*
+			if ( times == 1)
+			{
+
+			cvCopy(groundImg_copy, groundImg);
+			buttonLight ( Clear );
+			//cvCircle(  groundImg, cvPoint(pointarray[times-1][0],pointarray[times-1][1]), 3, CvColorRed, 4, 8, 0 );
+			cvShowImage( "background", groundImg );
+			}
+			else if( times == 2)
+			{
+			cvCopy(groundImg_copy, groundImg);
+			buttonLight ( Clear );
+			//cvCircle(  groundImg, cvPoint(pointarray[times-2][0],pointarray[times-2][1]), 3, CvColorRed, 4, 8, 0 );
+			cvCircle(  groundImg, cvPoint( pointarray[times-1][0],pointarray[times-1][1]), 3, CvColorRed, 4, 8, 0 );
+			cvShowImage( "background", groundImg );
+			}
+			else if( times == 0)
+			{
+			cvCopy(groundImg_copy, groundImg);
+			buttonLight ( Clear );
+			cvCircle(  groundImg, cvPoint(pointarray[times][0],pointarray[times][1]), 3, CvColorRed, 4, 8, 0 );
+			cvCircle(  groundImg, cvPoint(pointarray[times+1][0],pointarray[times+1][1]), 3, CvColorRed, 4, 8, 0 );
+			cvShowImage( "background", groundImg );
+			}
+			*/
 		}
+		/*
+		else if( (x> ClearAll[0][1])&& (x<ClearAll[1][1]) &&(y>ClearAll[0][0]) &&(y<ClearAll[1][0]) )
+		{
+		//doClearAll();
+		printf("ClearAll\n");
+		cvCopy(groundImg_copy, groundImg);
+		buttonLight ( ClearAll );
+		cvShowImage( "background", groundImg );
+
+		}
+		*/
 		else if ((x> Exit[0][1]) && (x< Exit[1][1]) && (y> Exit[0][0]) && (y< Exit[1][0]))
 		{
+			//doExit();
+
+			//fclose(points_2D3D);
 			if (flag_EXIT && flag_Cali_success)
 			{
 				fclose(points_2D3D);
@@ -889,15 +1001,20 @@ void onMouse(int event, int x, int y, int flags, void* param)
 				CV_MAT_ELEM(*stick3D, float, 0, 0) = 0;
 				CV_MAT_ELEM(*stick3D, float, 0, 1) = 0;
 				CV_MAT_ELEM(*stick3D, float, 0, 2) = 0;
-
+				/*
+				CV_MAT_ELEM( *stick3D, float, 1, 0)=0.1;
+				CV_MAT_ELEM( *stick3D, float, 1, 1)=0.1;
+				CV_MAT_ELEM( *stick3D, float, 1, 2)=0.1;
+				CV_MAT_ELEM( *stick3D, float, 2, 0)=-0.1;
+				CV_MAT_ELEM( *stick3D, float, 2, 1)=-0.1;
+				CV_MAT_ELEM( *stick3D, float, 2, 2)=-0.1;
+				*/
 				CV_MAT_ELEM(*stick3D, float, 1, 0) = 0;
 				CV_MAT_ELEM(*stick3D, float, 1, 1) = 0;
 				CV_MAT_ELEM(*stick3D, float, 1, 2) = 0;
-
 				CV_MAT_ELEM(*stick3D, float, 2, 0) = 0;
 				CV_MAT_ELEM(*stick3D, float, 2, 1) = 0;
-				CV_MAT_ELEM(*stick3D, float, 2, 2) = 0; 
-
+				CV_MAT_ELEM(*stick3D, float, 2, 2) = 0;
 				CV_MAT_ELEM(*stick3D, float, 3, 0) = 0;
 				CV_MAT_ELEM(*stick3D, float, 3, 1) = 0;
 				CV_MAT_ELEM(*stick3D, float, 3, 2) = 0;
@@ -907,11 +1024,13 @@ void onMouse(int event, int x, int y, int flags, void* param)
 				std::ofstream fout;
 				fout.open("..\\stick2D_camera3D.txt", std::fstream::out);
 
+
 				CvMat* intrinsic = (CvMat*)cvLoad("..//Intrinsics.xml");
 				CvMat* distortion = (CvMat*)cvLoad("..//Distortion.xml");
 
 				CvMat* rvec = cvCreateMat(3, 1, CV_32FC1);
 				CvMat* tvec = cvCreateMat(3, 1, CV_32FC1);
+
 
 				while (!fin.eof())
 				{
@@ -923,6 +1042,7 @@ void onMouse(int event, int x, int y, int flags, void* param)
 						fin >> CV_MAT_ELEM(*objectPoints, float, j, 1);
 						fin >> CV_MAT_ELEM(*objectPoints, float, j, 2);
 					}
+
 
 					cvFindExtrinsicCameraParams2(objectPoints, imagePoints, intrinsic, distortion, rvec, tvec, 1);
 					cvProjectPoints2(stick3D, rvec, tvec, intrinsic, distortion, stick2D);
@@ -966,6 +1086,7 @@ void onMouse(int event, int x, int y, int flags, void* param)
 
 				/////////////////////////////////////
 				sprintf(outputimage, "%s/%2d%s", "..//Save", img_num, ".jpg");
+				//printf("output path is: %s\n",outputimage);
 				cvCircle(image, cvPoint(int((x - offset_x)*x_scale), int((y - offset_y)*x_scale)), 3, CvColorGreen, 2, 8, 0);
 
 				cvSaveImage(outputimage, image, 0);
@@ -993,13 +1114,20 @@ void onMouse(int event, int x, int y, int flags, void* param)
 
 				if (times == 3)
 				{
-					times = -1;       //drawlines(pointarray, times, times-1);
+					times = -1;//drawlines(pointarray, times, times-1);
 					flag_else = 0;
 					flag_NI = 1;      //when clicked four dots, can move on to next image
 
 					drawStickGroundDot();
 				}
+				/*
+				if (times== 0)
+				{
+				flag_NI= 1;     //when haven't clicked once, can move on to next image
+				}
+				*/
 				times++;
+				//writeNumber(times-1, pointarray);
 				break;
 			}//end if 
 			else{}
@@ -1007,6 +1135,42 @@ void onMouse(int event, int x, int y, int flags, void* param)
 
 	}//end switch
 }//end onMouse
+//Get to know the number of images in the folder
+int LoadImgsFromDir(std::string &strSubDirName, std::vector<std::string>&m_szImgs)
+{
+	WIN32_FIND_DATAA stFD = { 0 };
+	std::string strDirName;
+
+	strDirName = strSubDirName;
+
+	std::string strFindName = strDirName + "//*";
+	HANDLE hFile = FindFirstFileA(strFindName.c_str(), &stFD);
+	BOOL bExist = FindNextFileA(hFile, &stFD);
+
+	for (; bExist;)
+	{
+		std::string strTmpName = strDirName + stFD.cFileName;
+		if (strDirName + "." == strTmpName || strDirName + ".." == strTmpName)
+		{
+			bExist = FindNextFileA(hFile, &stFD);
+			continue;
+		}
+		//   if (PathIsDirectoryA(strTmpName.c_str()))  
+		// {  
+		//   strTmpName += "//";  
+		// LoadImgsFromDir(strTmpName,m_szImgs);  
+		//bExist = FindNextFileA(hFile, &stFD);  
+		//continue;  
+		//}  
+		std::string strSubImg = strDirName + stFD.cFileName;
+		m_szImgs.push_back(strSubImg);
+		bExist = FindNextFileA(hFile, &stFD);
+	}
+
+	return m_szImgs.size();
+}
+
+
 
 //Main function
 int main(int argc, char** argv)
@@ -1020,6 +1184,7 @@ int main(int argc, char** argv)
 	/*CvMat * */distortion = (CvMat*)cvLoad("Distortion.xml");
 
 	// camera's extrinsic parameters will be caculated when animal image is loaded
+
 
 	//create a window
 	//success= cvNamedWindow( "background", CV_WINDOW_AUTOSIZE );
@@ -1057,12 +1222,22 @@ int main(int argc, char** argv)
 		printf("three.jpg is missing\n");
 		return -1;
 	}
+	//Calculate the image number in the folder
+	/*std::string floder = "C:\\10.4\\data\\";
+	std::vector<std::string> pic_name;
+	int n_pos = LoadImgsFromDir(floder,pic_name);
+	*/
 
 	//start from the first image of the first folder 
 	folder_num = 1;
 	img_num = 0;   // 1;    ning modification: 2/10/2014
+	//sprintf( folder, "%s%d%s", "..\\Cal\\poles\\", folder_num, "\\"); 
 	sprintf(folder, "%s", "..\\Cal\\poles\\");
 
+
+
+
+	//sprintf( inputName_calibration, "%s%d%s", "..\\Cal\\boards\\", img_num_calibration, ".JPG"); 
 	sprintf(inputName_calibration, "%s%s", "..\\Cal\\boards\\", PicName2[img_num_calibration]);
 	if ((image_calibration = cvLoadImage(inputName_calibration, 1)) == 0)
 	{
@@ -1114,8 +1289,15 @@ int main(int argc, char** argv)
 
 	}
 
+
+
+
+
 	if (img_num == n_pos)
 	{
 		printf("This is the last picture..");
 	}
+
+	//output resized image with dots on it
+
 }
