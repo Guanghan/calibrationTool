@@ -1,6 +1,6 @@
 //Header Declaration
-#include "cv.h"
-#include "highgui.h"
+#include "opencv/cv.h"
+#include "opencv/highgui.h"
 
 #include<iostream>
 #include<fstream>
@@ -466,7 +466,7 @@ int DispImage2(int img_num)
 }
 int calibration()
 {
-	board_w = 8;//9;//8;//5;//9; // Board width in squares
+	board_w = 9;//9;//8;//5;//9; // Board width in squares
 	board_h = 6;//4;//6; // Board height 
 	//board_w = 8; // Board width in squares
 	//board_h = 8; // Board height 
@@ -620,7 +620,7 @@ int calibration()
     cvWaitKey( 200 );
 
 	cvReleaseImage(&gray_image);
-	cvReleaseImage(&image_calibration);
+	//cvReleaseImage(&image_calibration);
 	cvReleaseImage(&image_calibration_resized);
 
 		// Handle pause/unpause and esc
