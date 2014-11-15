@@ -323,9 +323,10 @@ void drawStickGroundDot()
         cvCircle(  groundImg, cvPoint( int (u/x_scale + offset_x), int (v/x_scale + offset_y)), 3, CvColorBlue, 2, 8, 0 );
 	    cvCircle(  groundImg, cvPoint( int (u/x_scale + offset_x), int (v/x_scale + offset_y)), 1,  CvColorRed, 2, 8, 0 );
 		cvCircle(  groundImg, cvPoint( int (u/x_scale + offset_x), int (v/x_scale + offset_y)), 1,  CvColorWhite, 1, 8, 0 );
-		 //cvCircle(  groundImg, cvPoint( int (u/x_scale + offset_x), int (v/x_scale + offset_y)), 2,  CvColorBlue, 2, 8, 0 );
+
 		cvShowImage( "background", groundImg );
-               
+         
+		/*
         cvReleaseMat(&objectPoints);
         cvReleaseMat(&imagePoints);
         cvReleaseMat(&stick3D);
@@ -333,7 +334,7 @@ void drawStickGroundDot()
         cvReleaseMat(&intrinsic);
         cvReleaseMat(&distortion);
         cvReleaseMat(&rvec);
-        cvReleaseMat(&tvec);
+        cvReleaseMat(&tvec);*/
 
 }
 
@@ -1228,7 +1229,7 @@ else if( (x> Exit[0][1])&& (x< Exit[1][1]) &&(y> Exit[0][0]) &&(y< Exit[1][0]) )
 		}
 		
 		
-		cvFindExtrinsicCameraParams2(objectPoints, imagePoints, intrinsic, distortion, rvec, tvec, 1);
+		cvFindExtrinsicCameraParams2(objectPoints, imagePoints, intrinsic, distortion, rvec, tvec);
 		cvProjectPoints2(stick3D, rvec, tvec, intrinsic, distortion, stick2D);
 
 		fout<< CV_MAT_ELEM( *stick2D, float, 0, 0) <<' ' << CV_MAT_ELEM( *stick2D, float, 0, 1)<<' ';
