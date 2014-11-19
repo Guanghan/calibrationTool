@@ -86,7 +86,10 @@ float UndoMark[2][2]= {
 	{303, 956},
 	{364, 1144}
   };
-
+float Prev[2][2] = {
+	{ 124, 960 },
+	{ 186, 1143 }
+};
 //************************Parameters for calibration******************************//
 int n_boards = 0;
 const int board_dt = 20;
@@ -106,6 +109,7 @@ CvSize board_sz;
 /**********************************************************************************/
 //Flags
 int flag_NI= 0;
+int flag_PI= 0;
 int flag_UM= 0;
 int flag_Cal= 1;
 int flag_EXIT= 0;
@@ -263,21 +267,6 @@ int DispImage2(int img_num)
    image= cvCreateImage( cvSize(image_org->width, image_org->height), IPL_DEPTH_8U, 3);
    cvCopy(image_org, image);
 
-   /*
-     //Trying to have a curve to compensate inaccuray near the camera 
-   // Build the undistort map that we will use for all subsequent frames
-	IplImage* mapx = cvCreateImage( cvGetSize(image), IPL_DEPTH_32F, 1 );
-	IplImage* mapy = cvCreateImage( cvGetSize( image), IPL_DEPTH_32F, 1 );
-	cvInitUndistortMap( intrinsic, distortion, mapx, mapy );
-	IplImage *t = cvCloneImage(image );	
-	cvRemap( t, image, mapx, mapy ); // undistort image
-	cvReleaseImage( &t );
-	cvNamedWindow("undistorted image");
-	cvShowImage("undistorted image", image);
-	cvWaitKey(0);
-	  //new in v0.9.2
-	  */
-
    //Resize image based on the window/backgroundimage
    width_ground= groundImg->width;
    height_ground= groundImg->height; 
@@ -320,8 +309,6 @@ int calibration()
 {
 	board_w = 9;// 8;//9;//8;//5;//9; // Board width in squares
 	board_h = 6;// 7;//4;//6; // Board height 
-	//board_w = 8; // Board width in squares
-	//board_h = 8; // Board height 
 	n_boards = 10; // Number of boards
 	board_n = board_w * board_h;
 	board_sz = cvSize( board_w, board_h );
@@ -475,16 +462,6 @@ int calibration()
 	//cvReleaseImage(&image_calibration);
 	cvReleaseImage(&image_calibration_resized);
 
-		// Handle pause/unpause and esc
-		/*
-		int c = cvWaitKey( 15 );
-		if( c == 'p' ){
-			c = 0;
-			while( c != 'p' && c != 27 ){
-				c = cvWaitKey( 250 );
-			}
-		}
-		*/
     flag_NI= 1;
 
 	return 0;
@@ -844,6 +821,7 @@ else if( (x> Next[0][1])&& (x< Next[1][1]) &&(y> Next[0][0]) &&(y< Next[1][0]) )
     flag_Cal= 0;
     flag_EXIT= 1;
     flag_else= 1;
+	flag_PI = 1;
     //doNext();
 	//printf("Next\n");
     //sprintf(outputimage, "%s/%2d%s","..//Save",img_num,".jpg");
@@ -914,21 +892,22 @@ else if( (x> Next[0][1])&& (x< Next[1][1]) &&(y> Next[0][0]) &&(y< Next[1][0]) )
 	}
 	else{}
 }
-		/*
+		
 else if( (x> Prev[0][1])&& (x< Prev[1][1]) &&(y> Prev[0][0]) &&(y< Prev[1][0]) )
 {
-   //doPrevious();
-	printf("Previous\n");
-	img_num--;
-	buttonLight ( Prev );
-	cvShowImage( "Calibrate", groundImg );
-	cvWaitKey(3);
-	//cvDestroyWindow( "Calibrate" );
-	DispImage(img_num);
-	cvSetMouseCallback("Calibrate",onMouse,&mouseParam);
-    cvWaitKey(0);
+	if (img_num-1 >= 0)
+	{
+		img_num--;
+		buttonLight(Prev);
+		cvShowImage("Calibrate", groundImg);
+		cvWaitKey(3);
+
+		DispImage2(img_num);
+		cvSetMouseCallback("Calibrate", onMouse, &mouseParam);
+		cvWaitKey(0);
+	}
 }
-*/
+
 else if( (x> Calibration[0][1])&& (x< Calibration[1][1]) &&(y> Calibration[0][0]) &&(y< Calibration[1][0]) )
 {
 	if(flag_Cal)
@@ -1166,12 +1145,6 @@ else
 
 		  drawStickGroundDot();
         }
-		/*
-		if (times== 0)
-		{
-		  flag_NI= 1;     //when haven't clicked once, can move on to next image
-		}
-		*/
      times++;
      //writeNumber(times-1, pointarray);
         break;
@@ -1181,42 +1154,6 @@ else
 
 }//end switch
 }//end onMouse
-//Get to know the number of images in the folder
-int LoadImgsFromDir( std::string &strSubDirName,std::vector<std::string>&m_szImgs)  
-{  
-    WIN32_FIND_DATAA stFD = {0};  
-    std::string strDirName;  
-    
-    strDirName = strSubDirName;  
-    
-    std::string strFindName = strDirName + "//*";  
-    HANDLE hFile = FindFirstFileA(strFindName.c_str(), &stFD);  
-    BOOL bExist = FindNextFileA(hFile, &stFD);  
-      
-    for (;bExist;)  
-    {  
-        std::string strTmpName = strDirName + stFD.cFileName;  
-        if (strDirName + "." == strTmpName || strDirName + ".." == strTmpName)  
-        {  
-            bExist = FindNextFileA(hFile, &stFD);  
-            continue;  
-        }  
-     //   if (PathIsDirectoryA(strTmpName.c_str()))  
-       // {  
-         //   strTmpName += "//";  
-           // LoadImgsFromDir(strTmpName,m_szImgs);  
-            //bExist = FindNextFileA(hFile, &stFD);  
-            //continue;  
-        //}  
-        std::string strSubImg = strDirName + stFD.cFileName;  
-        m_szImgs.push_back(strSubImg);  
-        bExist = FindNextFileA(hFile, &stFD);  
-    }  
-     
-    return m_szImgs.size();  
-} 
-
-
 
 //Main function
 int main( int argc, char** argv )
@@ -1245,9 +1182,9 @@ int main( int argc, char** argv )
    {
    //Load ground image
                                     
-	 if( (groundImg_org = cvLoadImage( "..\\img\\background2.jpg", 1)) == 0 ) 
+	 if( (groundImg_org = cvLoadImage( "..\\img\\background4.jpg", 1)) == 0 ) 
 	 {
-		printf("background2.jpg is missing\n");
+		printf("background4.jpg is missing\n");
 		return -1;
 	 }
    }
@@ -1279,9 +1216,6 @@ int main( int argc, char** argv )
    img_num= 0;   // 1;    ning modification: 2/10/2014
    //sprintf( folder, "%s%d%s", "..\\Cal\\poles\\", folder_num, "\\"); 
    sprintf( folder, "%s", "..\\Cal\\poles\\"); 
-   
-
-
    
    //sprintf( inputName_calibration, "%s%d%s", "..\\Cal\\boards\\", img_num_calibration, ".JPG"); 
    sprintf( inputName_calibration, "%s%s", "..\\Cal\\boards\\", PicName2[img_num_calibration]); 
@@ -1335,25 +1269,8 @@ int main( int argc, char** argv )
 
    }
 
-
-
-
-
    if (img_num== n_pos)
         {
 			printf("This is the last picture..");
         }
-   
-   //output resized image with dots on it
-
 }
-
-
-
-/*
-char text[128];
- 
-       sprintf(text, "Frame %5d", pBKSegmentPara->iFrameNum);
-       cvInitFont(&font1, CV_FONT_HERSHEY_SIMPLEX, 0.5, 0.5, 0, 1, CV_AA);
-       cvPutText(frameCopy, text, cvPoint(10, 460), &font1, cvScalar(255, 255, 255, 255));
-	   */
