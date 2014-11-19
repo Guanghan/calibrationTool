@@ -19,25 +19,6 @@
 
 #pragma comment( linker, "/subsystem:\"windows\" /entry:\"mainCRTStartup\"")
 
-//system(">dir /B /A:D >folderList.txt");
-//*******************************structure*****************************************************//
-/*
-typedef struct File_List_Struct
-{
-	int		numFile;
-	int		numDir;
-	//int		currFramNum;
-
-	char	PicName[128];
-	//char	CurrPicName[128];
-	char	DirName[128];
-
-	char**	strInputPicNameArr;
-
-}File_List_Struct; 
-
-File_List_Struct*	gFileList;  //global structure 
-*/
 //*******************************The Slide caculated for the pole**********************************************//
 float sinTheta, cosTheta;
 float sinThetaS[128], cosThetaS[128];
@@ -51,7 +32,7 @@ int success= 0;                   //whether loading input image is successful
 int width_ground, height_ground;   //background image width and height
 int width_img, height_img;      //foreground image width and height
 CvSize img_size;
-/*const*/ char background[]= "background";  //window name
+/*const*/ char background[]= "Calibrate";  //window name
 IplImage *groundImg_org=0, *groundImg_org_text= 0, *image_org=0, *groundImg= 0, *image= 0, *standard= 0, *foreImg= 0, *groundImg_copy= 0;  //background image and foreground image
 int img_num = 0;        // the nth input image
 int folder_num= 0;
@@ -130,6 +111,7 @@ int flag_Cal= 1;
 int flag_EXIT= 0;
 int flag_else= 0;
 int flag_Cali_success= 0;
+int flag_lastImg = 0;
 
 int flag_read_or_not= 0;
 /************************************************************************************/
@@ -145,137 +127,6 @@ int flag_read_or_not= 0;
 	char cmd_arg2[128];
 	char PictureList_dir2[128];
 /***********************************************************************************/
-
-
-
-
-/*
-void ErrorHandler(LPTSTR lpszFunction) 
-{ 
-	// Retrieve the system error message for the last-error code
-
-	LPVOID lpMsgBuf;
-	LPVOID lpDisplayBuf;
-	DWORD dw = GetLastError(); 
-
-	FormatMessage(
-		FORMAT_MESSAGE_ALLOCATE_BUFFER | 
-		FORMAT_MESSAGE_FROM_SYSTEM |
-		FORMAT_MESSAGE_IGNORE_INSERTS,
-		NULL,
-		dw,
-		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-		(LPTSTR) &lpMsgBuf,
-		0, NULL );
-
-	// Display the error message and exit the process
-
-	lpDisplayBuf = (LPVOID)LocalAlloc(LMEM_ZEROINIT, 
-		(lstrlen((LPCTSTR)lpMsgBuf)+lstrlen((LPCTSTR)lpszFunction)+40)*sizeof(TCHAR)); 
-	StringCchPrintf((LPTSTR)lpDisplayBuf, 
-		LocalSize(lpDisplayBuf) / sizeof(TCHAR),
-		TEXT("%s failed with error %d: %s"), 
-		lpszFunction, dw, lpMsgBuf); 
-	MessageBox(NULL, (LPCTSTR)lpDisplayBuf, TEXT("Error"), MB_OK); 
-
-	LocalFree(lpMsgBuf);
-	LocalFree(lpDisplayBuf);
-}
-*/
-/*
-void OpenDir()
-{
-    char** Names;
-	char	BoardDir[256];
-	WIN32_FIND_DATA ffd;
-	LARGE_INTEGER filesize;
-	TCHAR szDir[MAX_PATH];
-	size_t length_of_arg;
-	HANDLE hFind = INVALID_HANDLE_VALUE;
-	DWORD dwError=0;
-	int i, iii, idxVideoName;
-		
-	// convert wchar_t to char
-	size_t				convertedChars = 0;
-	size_t				origsize;;
-
-	// initialize file list buffer.
-	gFileList			= (File_List_Struct*)malloc(sizeof(File_List_Struct));
-	gFileList->numDir	= 0;
-	gFileList->numFile	= 0;
-	gFileList->strInputPicNameArr = (char**)malloc(NUM_MAX_FILES_PER_FOLDER * sizeof(char*));
-
-	Names		= gFileList->strInputPicNameArr;
-
-	for (i=0; i<NUM_MAX_FILES_PER_FOLDER; i++)
-	{
-		*(Names + i)	= (char*)malloc(NAME_BUFFER_LEN * sizeof(char));
-	}
-
-	//strcpy( BoardDir, "../Cal/boards/");//ning
-	//strcpy( gFileList->DirName, BoardDir );
-
-	//iii =	MultiByteToWideChar(CP_ACP, 0, BoardDir, -1, szDir, 0); 
-	//iii =	MultiByteToWideChar(CP_ACP, 0, BoardDir, -1, szDir, iii); 
-
-
-	StringCchCat(szDir, MAX_PATH, TEXT("..\Cal\boards\\*"));
-
-	
-	
-	//StringCchCat(szDir, MAX_PATH, TEXT("\\*"));
-
-	// Find the first file in the directory.
-	hFind = FindFirstFile(szDir, &ffd);
-
-	if (INVALID_HANDLE_VALUE == hFind) 
-	{
-		ErrorHandler(TEXT("FindFirstFile"));
-		//return dwError;
-	} 
-
-	// List all the files in the directory with some info about them.
-	do
-	{
-		if (ffd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-		{
-			// . <DIR> or .. <DIR>
-			gFileList->numDir ++;
-			_tprintf(TEXT("  %s   <DIR>\n"), ffd.cFileName);
-		}
-		else
-		{
-			// list of each file.
-			filesize.LowPart	= ffd.nFileSizeLow;
-			filesize.HighPart	= ffd.nFileSizeHigh;
-
-			idxVideoName		= gFileList->numFile;
-			gFileList->numFile ++;
-
-			origsize	= wcslen(ffd.cFileName) + 1;
-
-			// save current file name in string array.
-			wcstombs_s( &convertedChars,
-						*(gFileList->strInputPicNameArr + idxVideoName), 
-						origsize, ffd.cFileName, _TRUNCATE );
-			// save current file name.
-			wcstombs_s( &convertedChars, gFileList->PicName, origsize, ffd.cFileName, _TRUNCATE );
-		}
-	}
-	while (FindNextFile(hFind, &ffd) != 0);
-
-	dwError = GetLastError();
-	if (dwError != ERROR_NO_MORE_FILES) 
-	{
-		ErrorHandler(TEXT("FindFirstFile"));
-	}
-
-	FindClose(hFind);
-	//return dwError;
-
-}  
-*/
-
 void drawStickGroundDot()
 {
 	    double t[3];// since the 3D point for the bottom of the stick is [0 0 0], so T is what we need in the camera coordinate, according to M'=RM+T , which M is the 3D point and M' is the camera point
@@ -324,7 +175,7 @@ void drawStickGroundDot()
 	    cvCircle(  groundImg, cvPoint( int (u/x_scale + offset_x), int (v/x_scale + offset_y)), 1,  CvColorRed, 2, 8, 0 );
 		cvCircle(  groundImg, cvPoint( int (u/x_scale + offset_x), int (v/x_scale + offset_y)), 1,  CvColorWhite, 1, 8, 0 );
 
-		cvShowImage( "background", groundImg );
+		cvShowImage( "Calibrate", groundImg );
          
 		/*
         cvReleaseMat(&objectPoints);
@@ -462,13 +313,13 @@ int DispImage2(int img_num)
    groundImg_copy= cvCreateImage( cvSize(groundImg_org->width, groundImg_org->height), IPL_DEPTH_8U, 3);
    cvCopy(groundImg, groundImg_copy);
    /**********************************************************/
-   cvShowImage( "background", groundImg );
+   cvShowImage( "Calibrate", groundImg );
    return 1;
 }
 int calibration()
 {
-	board_w = 9;//9;//8;//5;//9; // Board width in squares
-	board_h = 6;//4;//6; // Board height 
+	board_w = 9;// 8;//9;//8;//5;//9; // Board width in squares
+	board_h = 6;// 7;//4;//6; // Board height 
 	//board_w = 8; // Board width in squares
 	//board_h = 8; // Board height 
 	n_boards = 10; // Number of boards
@@ -531,7 +382,7 @@ int calibration()
 			// Draw it
 			cvDrawChessboardCorners( image_calibration, board_sz, corners, corner_count, found );
 			cvResize(image_calibration,image_calibration_resized,1);
-			cvShowImage( "background", image_calibration_resized );
+			cvShowImage( "Calibrate", image_calibration_resized );
 			//printf("Corner count is: %d\n", corner_count);
 
 			// If we got a good board, add it to our data
@@ -574,7 +425,7 @@ int calibration()
 		return -1;  // Get next image
 		}
 		cvResize(image_calibration,image_calibration_resized,1);
-		cvShowImage( "background", image_calibration_resized );
+		cvShowImage( "Calibrate", image_calibration_resized );
 		
 	} // End collection while loop
 
@@ -617,7 +468,7 @@ int calibration()
 	printf("saved!!\n");
 	
 	cvResize(image_calibration,image_calibration_resized,1);
-	cvShowImage( "background", image_calibration_resized ); // Show corrected image
+	cvShowImage( "Calibrate", image_calibration_resized ); // Show corrected image
     cvWaitKey( 200 );
 
 	cvReleaseImage(&gray_image);
@@ -677,7 +528,7 @@ void drawlines( int pointarray[1024][2], int n1, int n2)
   CvFont font;
   cvInitFont(&font,CV_FONT_HERSHEY_DUPLEX ,0.5f, 0.5f,0,0.5,CV_AA);  
   cvPutText( groundImg, text, c, &font, cvScalar(0, 255, 255, 255));
-  //cvShowImage( "background", groundImg );
+  //cvShowImage( "Calibrate", groundImg );
 }
 
 void linkDots( int pointarray[1024][2], int n1, int n2)
@@ -691,7 +542,7 @@ void linkDots( int pointarray[1024][2], int n1, int n2)
    cvLine( groundImg, a, b, cvScalar(0, 0, 255, 0),
              1, 8, 0 );
 
-   cvShowImage("background",groundImg);
+   cvShowImage("Calibrate",groundImg);
 }
 
 void linkDotsTemp( int pointarray[1024][2], int n1, int x, int y)
@@ -701,7 +552,7 @@ void linkDotsTemp( int pointarray[1024][2], int n1, int x, int y)
    cvLine( tempImg, a, b, cvScalar(0, 0, 255, 0),
              1, 8, 0 );
 
-   cvShowImage("background",tempImg);
+   cvShowImage("Calibrate",tempImg);
 }
 
 
@@ -754,7 +605,7 @@ void writeNumber (int times, int pointarray[1024][2])
  CvFont font;
  cvInitFont(&font,CV_FONT_HERSHEY_DUPLEX ,0.5f, 0.5f,0,1,CV_AA);
  cvPutText( groundImg, text, cvPoint(dotx, doty), &font, cvScalar(228, 26, 3, 255));
- cvShowImage( "background", groundImg );
+ cvShowImage( "Calibrate", groundImg );
  
 }
 
@@ -824,7 +675,7 @@ void paintNumber ( int times, int pointarray[1024][2] )
 			((uchar *)(groundImg->imageData + (offsetNumber_y+ y)*step1 ))[(offsetNumber_x+ x)*channels1 + 2]= ((uchar *)(number->imageData + y*step3))[x*channels3 + 2];
 	   }
    }
-  cvShowImage( "background", groundImg );
+  cvShowImage( "Calibrate", groundImg );
   cvWaitKey(0);
 }
 
@@ -907,7 +758,7 @@ void DispImage( int img_num )
    groundImg_copy= cvCreateImage( cvSize(groundImg_org->width, groundImg_org->height), IPL_DEPTH_8U, 3);
    cvCopy(groundImg, groundImg_copy);
 
-   cvShowImage( "background", groundImg );
+   cvShowImage( "Calibrate", groundImg );
 }
 
 
@@ -945,11 +796,11 @@ void onMouse(int event,int x,int y,int flags,void* param)
     printf("ClearAll\n");
 	cvCopy(groundImg_copy, groundImg);
 	buttonLight ( UndoMark );
-	cvShowImage( "background", groundImg );
+	cvShowImage( "Calibrate", groundImg );
 	cvWaitKey(3);
 
 	cvCopy(groundImg_copy, groundImg);
-	cvShowImage( "background", groundImg );
+	cvShowImage( "Calibrate", groundImg );
 	times= 0;
 	flag_else= 1;
 	}
@@ -962,7 +813,7 @@ void onMouse(int event,int x,int y,int flags,void* param)
     cvCopy(groundImg_copy, groundImg);
 	buttonLight ( UndoMark );
 	//cvCircle(  groundImg, cvPoint(pointarray[times-1][0],pointarray[times-1][1]), 3, CvColorRed, 4, 8, 0 );
-	cvShowImage( "background", groundImg );
+	cvShowImage( "Calibrate", groundImg );
 	}
 	else if( times == 2)
 	{
@@ -970,7 +821,7 @@ void onMouse(int event,int x,int y,int flags,void* param)
 	 buttonLight ( UndoMark );
      //cvCircle(  groundImg, cvPoint(pointarray[times-2][0],pointarray[times-2][1]), 3, CvColorRed, 4, 8, 0 );
 	 cvCircle(  groundImg, cvPoint( pointarray[times-1][0],pointarray[times-1][1]), 3, CvColorRed, 4, 8, 0 );
-	 cvShowImage( "background", groundImg );
+	 cvShowImage( "Calibrate", groundImg );
 	}
 	else if( times == 0)
 	{
@@ -978,7 +829,7 @@ void onMouse(int event,int x,int y,int flags,void* param)
 	 buttonLight ( UndoMark );
      cvCircle(  groundImg, cvPoint(pointarray[times][0],pointarray[times][1]), 3, CvColorRed, 4, 8, 0 );
 	 cvCircle(  groundImg, cvPoint(pointarray[times+1][0],pointarray[times+1][1]), 3, CvColorRed, 4, 8, 0 );
-	 cvShowImage( "background", groundImg );
+	 cvShowImage( "Calibrate", groundImg );
 	}
 	*/
 
@@ -1002,7 +853,7 @@ else if( (x> Next[0][1])&& (x< Next[1][1]) &&(y> Next[0][0]) &&(y< Next[1][0]) )
     //fprintf( points_2D3D, "%s\n", outputimage );
     fprintf( points_2D3D, "\n");
 	buttonLight ( Next );
-	cvShowImage( "background", groundImg );
+	cvShowImage( "Calibrate", groundImg );
 	cvWaitKey(3);
 	
 	img_num++;
@@ -1043,14 +894,14 @@ else if( (x> Next[0][1])&& (x< Next[1][1]) &&(y> Next[0][0]) &&(y< Next[1][0]) )
         cvInitFont(&font,CV_FONT_HERSHEY_DUPLEX ,0.7f, 0.7f, 0, 1, CV_AA);
         cvPutText( groundImg, text, d, &font, cvScalar(255, 255, 255, 255));
 
-		cvShowImage("background",groundImg);
-	    cvSetMouseCallback("background",onMouse,&mouseParam);
+		cvShowImage("Calibrate",groundImg);
+	    cvSetMouseCallback("Calibrate",onMouse,&mouseParam);
 	
-	flag_NI= 0;//1;//0
-    flag_Cal= 0;
-    flag_EXIT= 1;
-	flag_else= 0;
-	 
+		flag_NI= 0;
+		flag_Cal= 0;
+		flag_EXIT= 1;
+		flag_else= 1; 
+		flag_lastImg = 1;
 	}
 	else
 	{
@@ -1058,7 +909,7 @@ else if( (x> Next[0][1])&& (x< Next[1][1]) &&(y> Next[0][0]) &&(y< Next[1][0]) )
 	}
 
 
-	cvSetMouseCallback("background",onMouse,&mouseParam);
+	cvSetMouseCallback("Calibrate",onMouse,&mouseParam);
     cvWaitKey(0);
 	}
 	else{}
@@ -1070,11 +921,11 @@ else if( (x> Prev[0][1])&& (x< Prev[1][1]) &&(y> Prev[0][0]) &&(y< Prev[1][0]) )
 	printf("Previous\n");
 	img_num--;
 	buttonLight ( Prev );
-	cvShowImage( "background", groundImg );
+	cvShowImage( "Calibrate", groundImg );
 	cvWaitKey(3);
-	//cvDestroyWindow( "background" );
+	//cvDestroyWindow( "Calibrate" );
 	DispImage(img_num);
-	cvSetMouseCallback("background",onMouse,&mouseParam);
+	cvSetMouseCallback("Calibrate",onMouse,&mouseParam);
     cvWaitKey(0);
 }
 */
@@ -1118,8 +969,8 @@ else if( (x> Calibration[0][1])&& (x< Calibration[1][1]) &&(y> Calibration[0][0]
     cvPutText( groundImg, text, d, &font, cvScalar(255, 255, 255, 255));
 	}
 	//*************************************************************************************************
-	cvShowImage("background",groundImg);
-	cvSetMouseCallback("background",onMouse,&mouseParam);
+	cvShowImage("Calibrate",groundImg);
+	cvSetMouseCallback("Calibrate",onMouse,&mouseParam);
     cvWaitKey(0);
 	}
 	else
@@ -1134,7 +985,7 @@ else if( (x> Calibration[0][1])&& (x< Calibration[1][1]) &&(y> Calibration[0][0]
     cvCopy(groundImg_copy, groundImg);
 	buttonLight ( Clear );
 	//cvCircle(  groundImg, cvPoint(pointarray[times-1][0],pointarray[times-1][1]), 3, CvColorRed, 4, 8, 0 );
-	cvShowImage( "background", groundImg );
+	cvShowImage( "Calibrate", groundImg );
 	}
 	else if( times == 2)
 	{
@@ -1142,7 +993,7 @@ else if( (x> Calibration[0][1])&& (x< Calibration[1][1]) &&(y> Calibration[0][0]
 	 buttonLight ( Clear );
      //cvCircle(  groundImg, cvPoint(pointarray[times-2][0],pointarray[times-2][1]), 3, CvColorRed, 4, 8, 0 );
 	 cvCircle(  groundImg, cvPoint( pointarray[times-1][0],pointarray[times-1][1]), 3, CvColorRed, 4, 8, 0 );
-	 cvShowImage( "background", groundImg );
+	 cvShowImage( "Calibrate", groundImg );
 	}
 	else if( times == 0)
 	{
@@ -1150,7 +1001,7 @@ else if( (x> Calibration[0][1])&& (x< Calibration[1][1]) &&(y> Calibration[0][0]
 	 buttonLight ( Clear );
      cvCircle(  groundImg, cvPoint(pointarray[times][0],pointarray[times][1]), 3, CvColorRed, 4, 8, 0 );
 	 cvCircle(  groundImg, cvPoint(pointarray[times+1][0],pointarray[times+1][1]), 3, CvColorRed, 4, 8, 0 );
-	 cvShowImage( "background", groundImg );
+	 cvShowImage( "Calibrate", groundImg );
 	}
 	*/
 }
@@ -1161,7 +1012,7 @@ else if( (x> ClearAll[0][1])&& (x<ClearAll[1][1]) &&(y>ClearAll[0][0]) &&(y<Clea
 	printf("ClearAll\n");
 	cvCopy(groundImg_copy, groundImg);
 	buttonLight ( ClearAll );
-	cvShowImage( "background", groundImg );
+	cvShowImage( "Calibrate", groundImg );
 	
 }
 */
@@ -1239,7 +1090,7 @@ else if( (x> Exit[0][1])&& (x< Exit[1][1]) &&(y> Exit[0][0]) &&(y< Exit[1][0]) )
 		// camera 3D
 		fout<< t[0] <<' ' << t[1] <<' ' <<t[2] << std::endl;	
 	}
-	cvDestroyWindow( "background" );
+	cvDestroyWindow( "Calibrate" );
 
 	cvReleaseMat(&objectPoints);
 	cvReleaseMat(&imagePoints);
@@ -1254,7 +1105,7 @@ else if( (x> Exit[0][1])&& (x< Exit[1][1]) &&(y> Exit[0][0]) &&(y< Exit[1][0]) )
 	else
 	{
 		fclose(points_2D3D);
-		cvDestroyWindow( "background" );
+		cvDestroyWindow( "Calibrate" );
 	}
 }
 else    
@@ -1263,7 +1114,7 @@ else
 	{
      //get a red dot where clicked by mouse
     cvCircle(  groundImg, cvPoint(x,y), 2, CvColorRed, 2, 8, 0 ); 
-    cvShowImage( "background", groundImg );
+    cvShowImage( "Calibrate", groundImg );
     pointarray[times][0]=x;
     pointarray[times][1]=y;
     //printf("The %d dot chosen is:(%d, %d)\n ", times+1 ,x, y);
@@ -1286,8 +1137,8 @@ else
     CvFont font;
     cvInitFont(&font,CV_FONT_HERSHEY_DUPLEX ,0.5f, 0.5f,0,1,CV_AA);
     cvPutText( groundImg, text, d, &font, cvScalar(255, 255, 255, 255));
-    cvShowImage("background",groundImg);
-	//cvSetMouseCallback("background",onMouse,&mouseParam);
+    cvShowImage("Calibrate",groundImg);
+	//cvSetMouseCallback("Calibrate",onMouse,&mouseParam);
     //cvWaitKey(0);
 	//************************************************************************************************* 
 	flag_read_or_not= 1; //now able to read
@@ -1301,7 +1152,17 @@ else
         {
           times= -1;//drawlines(pointarray, times, times-1);
 		  flag_else= 0;
-		  flag_NI= 1;      //when clicked four dots, can move on to next image
+		  if (flag_lastImg == 0) flag_NI = 1;      //when clicked four dots, can move on to next image
+		  else if (flag_lastImg == 1) {
+			  if (flag_read_or_not)
+			  {
+				  fprintf(points_2D3D, "%d %d %d %d %d\n", int((pointarray[0][0] - offset_x)*x_scale), int((pointarray[0][1] - offset_y)*x_scale), 0, 0, 2);
+				  fprintf(points_2D3D, "%d %d %d %d %d\n", int((pointarray[1][0] - offset_x)*x_scale), int((pointarray[1][1] - offset_y)*x_scale), 0, 0, 4);
+				  fprintf(points_2D3D, "%d %d %d %d %d\n", int((pointarray[2][0] - offset_x)*x_scale), int((pointarray[2][1] - offset_y)*x_scale), 0, 0, 6);
+				  fprintf(points_2D3D, "%d %d %d %d %d\n", int((pointarray[3][0] - offset_x)*x_scale), int((pointarray[3][1] - offset_y)*x_scale), 0, 0, 8);
+			  }
+			  flag_read_or_not = 0;
+		  }
 
 		  drawStickGroundDot();
         }
@@ -1372,8 +1233,8 @@ int main( int argc, char** argv )
 
 
    //create a window
-   //success= cvNamedWindow( "background", CV_WINDOW_AUTOSIZE );
-   success= cvNamedWindow( "background", 1 ); //2/18/2014 ning
+   //success= cvNamedWindow( "Calibrate", CV_WINDOW_AUTOSIZE );
+   success= cvNamedWindow( "Calibrate", 1 ); //2/18/2014 ning
 	if (success == 0)
    {
 	   //printf("Can't create window, please contact 911.");
@@ -1445,9 +1306,9 @@ int main( int argc, char** argv )
 	d.y += 22;
     sprintf( text,  "Please put in boards and poles images.");
 	cvPutText( groundImg_org_text, text, d, &font, cvScalar(255, 255, 255, 255));
-    cvShowImage( "background", groundImg_org_text );
+    cvShowImage( "Calibrate", groundImg_org_text );
 	mouseParam= 5;
-    cvSetMouseCallback("background",onMouse,&mouseParam);
+    cvSetMouseCallback("Calibrate",onMouse,&mouseParam);
     cvWaitKey(0);
    }
    else
@@ -1461,7 +1322,7 @@ int main( int argc, char** argv )
     CvFont font;
     cvInitFont(&font,CV_FONT_HERSHEY_DUPLEX ,0.7f, 0.7f,0,1,CV_AA);
     cvPutText( groundImg_org_text, text, d, &font, cvScalar(255, 255, 255, 255));
-    cvShowImage( "background", groundImg_org_text );
+    cvShowImage( "Calibrate", groundImg_org_text );
 
 	 //Points2D3D
 	points_2D3D= fopen("..\\points_2D3D.txt","w");
@@ -1469,7 +1330,7 @@ int main( int argc, char** argv )
 
     //Respond to the mouse click
     mouseParam= 5;
-    cvSetMouseCallback("background",onMouse,&mouseParam);
+    cvSetMouseCallback("Calibrate",onMouse,&mouseParam);
     cvWaitKey(0);
 
    }
