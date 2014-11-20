@@ -255,15 +255,15 @@ void Init_Board()
 }
 int DispImage2(int img_num)
 {
-	sprintf( inputName, "%s\\%s", folder, PicName[img_num]);
-	//sprintf( inputName, "%s%d%s", folder, img_num, ".JPG"); 
-   //free(image_org);
+   sprintf( inputName, "%s\\%s", folder, PicName[img_num]);
+   cvReleaseImage(&image_org);
    image_org = cvLoadImage( inputName, 1);
 
-   //Make them gray   //cancel this
+   cvReleaseImage(&groundImg);
    groundImg= cvCreateImage( cvSize(groundImg_org->width, groundImg_org->height), IPL_DEPTH_8U, 3);
    cvCopy(groundImg_org, groundImg);
    
+   cvReleaseImage(&image);
    image= cvCreateImage( cvSize(image_org->width, image_org->height), IPL_DEPTH_8U, 3);
    cvCopy(image_org, image);
 
@@ -273,12 +273,16 @@ int DispImage2(int img_num)
    scale= float(image->width)/float(image->height) ;
    img_size.height=  (0.7*height_ground);
    img_size.width=   scale*(img_size.height);   //so the width/height of image does not change
+
+   cvReleaseImage(&standard);
    standard= cvCreateImage( img_size, IPL_DEPTH_8U, 3);
    cvResize(image,  standard,  CV_INTER_LINEAR );
    /////////////////////////////////////////
     x_scale= (image->height)/(0.7*height_ground);
 	////////////////////////////////////////////
+
    foreImg= standard;  
+
    //Set image to the right position on top of the ground image
    // write the fore ground image onto the ground image
    step1= groundImg->widthStep;
@@ -298,7 +302,9 @@ int DispImage2(int img_num)
 			((uchar *)(groundImg->imageData + (offset_y+y)*step1 ))[(offset_x+x)*channels1 + 2]= ((uchar *)(foreImg->imageData + y*step2))[x*channels2 + 2];
 	   }
    }
+
    //get a copy for re-paint
+   cvReleaseImage(&groundImg_copy);
    groundImg_copy= cvCreateImage( cvSize(groundImg_org->width, groundImg_org->height), IPL_DEPTH_8U, 3);
    cvCopy(groundImg, groundImg_copy);
    /**********************************************************/
@@ -307,7 +313,7 @@ int DispImage2(int img_num)
 }
 int calibration()
 {
-	board_w = 9;// 8;//9;//8;//5;//9; // Board width in squares
+	board_w = 9; // 8;//9;//8;//5;//9; // Board width in squares
 	board_h = 6;// 7;//4;//6; // Board height 
 	n_boards = 10; // Number of boards
 	board_n = board_w * board_h;
@@ -695,22 +701,6 @@ void DispImage( int img_num )
    ///////////////////////////////////////////
 
    foreImg= standard;
-   
-   //caculate camera's extrinsic parameters based on foreImg
-   //we need to 
-    
-   /*
-    // Build the undistort map that we will use for all subsequent frames
-	IplImage* mapx = cvCreateImage( cvGetSize(foreImg), IPL_DEPTH_32F, 1 );
-	IplImage* mapy = cvCreateImage( cvGetSize( foreImg ), IPL_DEPTH_32F, 1 );
-	cvInitUndistortMap( intrinsic, distortion, mapx, mapy );
-	IplImage *t = cvCloneImage(foreImg );	
-	cvRemap( t, foreImg, mapx, mapy ); // undistort image
-	cvReleaseImage( &t );
-	cvNamedWindow("undistorted image");
-	cvShowImage("undistorted image", foreImg);
-	cvWaitKey(0);
-	*/
   
    //Set image to the right position on top of the ground image
    // write the fore ground image onto the ground image
@@ -865,6 +855,8 @@ else if( (x> Next[0][1])&& (x< Next[1][1]) &&(y> Next[0][0]) &&(y< Next[1][0]) )
 	sprintf( inputName, "%s\\%s", folder, PicName[img_num+1]);
 	if  ( (image_org = cvLoadImage( inputName, 1))==0)    
 	{
+		cvReleaseImage(&image_org);
+
         DispImage2(img_num);
 	    CvPoint d = { 60, 660 };
         sprintf( text, "No more images in this folder. Press Exit to save.");
@@ -1264,7 +1256,7 @@ int main( int argc, char** argv )
 
     //Respond to the mouse click
     mouseParam= 5;
-    cvSetMouseCallback("Calibrate",onMouse,&mouseParam);
+    cvSetMouseCallback("Calibrate", onMouse, &mouseParam);
     cvWaitKey(0);
 
    }
